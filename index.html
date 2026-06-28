@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0b1220" />
+<title>Ma Tournée — Navigation camion</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Ma Tournée" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--ink:#0b1220;--ac:#2f6bff;--ac2:#1b4dd6;--ok:#10b981;--bg:#eef1f6;--line:#e7ebf2;--mut:#6b7280}
+html,body{height:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
+#map{position:fixed;top:0;left:0;right:0;height:46vh;z-index:1;background:#dde4ee}
+.topbar{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;z-index:14;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-radius:16px;padding:9px 12px;box-shadow:0 6px 22px rgba(11,18,32,.14)}
+.brand{font-weight:800;font-size:15px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.brand small{display:block;font-weight:500;font-size:10px;color:var(--mut)}
+.langs{display:flex;gap:4px}.langs button{border:none;background:#f0f3f8;color:#475569;border-radius:9px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}.langs button.on{background:var(--ink);color:#fff}
+.fab{position:fixed;right:16px;top:calc(46vh - 62px);z-index:12;width:48px;height:48px;border-radius:50%;background:#fff;border:none;box-shadow:0 6px 18px rgba(11,18,32,.2);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sheet{position:fixed;left:0;right:0;top:42vh;bottom:0;z-index:8;background:#fff;border-radius:26px 26px 0 0;box-shadow:0 -12px 40px rgba(11,18,32,.16);overflow-y:auto;padding:0 16px 110px;-webkit-overflow-scrolling:touch}
+.handle{width:40px;height:5px;background:#e2e7ef;border-radius:3px;margin:10px auto 2px}
+.sect{padding:14px 0;border-bottom:1px solid var(--line)}.sect:last-of-type{border-bottom:none}
+.sect h2{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:12px}
+textarea,input[type=number],select{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px;font-size:16px;font-family:inherit;background:#fbfcfe;color:var(--ink)}
+textarea{min-height:58px;resize:vertical}textarea:focus,input:focus,select:focus{outline:none;border-color:var(--ac);background:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{flex:1;min-width:120px;min-height:50px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn.p{background:var(--ac);color:#fff}.btn.s{background:#eef2fb;color:var(--ac2)}.btn.g{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+.lab{font-size:13px;color:var(--mut);font-weight:600;margin-bottom:6px}
+.stop{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.stop:last-child{border-bottom:none}
+.num{width:26px;height:26px;border-radius:8px;background:var(--ac);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stop input{flex:1;border:none;background:transparent;font-size:15px;padding:4px;color:var(--ink)}.stop input:focus{outline:none}
+.mini{background:#f2f5fa;border:none;width:38px;height:38px;border-radius:10px;font-size:1.05rem;cursor:pointer;color:#475569;flex-shrink:0}.mini.del{color:#e11d48}
+.empty{color:var(--mut);font-size:14px;text-align:center;padding:18px 0}
+.count{font-size:13px;color:var(--mut);font-weight:600;margin-bottom:6px}
+.veh{display:grid;grid-template-columns:1fr 1fr;gap:10px}.veh label{font-size:11px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px}
+.chk{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:14px;font-weight:500}
+.summary{display:none;background:linear-gradient(135deg,#0b1220,#22335a);color:#fff;border-radius:16px;padding:15px 17px;margin:12px 0 0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.steps{display:none;margin-top:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden}.steps div{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px}.steps div:last-child{border-bottom:none}
+.warnline{font-size:11px;color:#9a3412;background:#fff7ed;border:1px solid #fde7c8;border-radius:10px;padding:8px 10px;margin-top:12px;line-height:1.45}
+#routeStatus,#scanStatus,#noteStatus{font-size:13px;color:var(--ac);margin-top:8px;display:none;font-weight:600}
+.transbox{display:none;margin-top:10px}.transbox .o{font-size:13px;color:var(--mut);border-left:3px solid var(--line);padding-left:10px;margin-bottom:8px}.transbox .r{font-size:18px;font-weight:700;background:#ecfdf5;border:1px solid #bbf7d0;border-radius:12px;padding:12px;color:#065f46}
+.foot{font-size:10px;color:var(--mut);text-align:center;padding:14px 0 4px}
+.actions{position:fixed;left:0;right:0;bottom:0;z-index:14;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 16px max(10px,env(safe-area-inset-bottom));display:flex;gap:10px}
+.actions button{min-height:54px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+#routeBtn{flex:1;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;box-shadow:0 8px 20px rgba(47,107,255,.35)}
+#startBtn{flex:0 0 128px;background:#0b1220;color:#fff}
+.actions button:disabled{background:#e2e7ef;color:#9aa3b2;box-shadow:none}
+#tour{position:fixed;inset:0;background:radial-gradient(1000px 520px at 72% -12%,#22335a,#0b1220);color:#fff;z-index:50;display:none;flex-direction:column;padding:24px}
+#tour .exit{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer;font-family:inherit}
+#tour .prog{text-align:center;color:#9fb1cf;font-size:14px;font-weight:600;margin-top:6px}
+#tour .barwrap{height:8px;background:rgba(255,255,255,.14);border-radius:6px;margin:14px 0}#tour .bar{height:100%;background:linear-gradient(90deg,var(--ac),#5b8cff);border-radius:6px;width:0;transition:.3s}
+#tour .cur{flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center}#tour .lbl{font-size:12px;color:#9fb1cf;text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+#tour .addr{font-size:26px;font-weight:800;margin:14px 0;line-height:1.2}#tour .nxt{color:#aebbd4;font-size:15px}
+#tour .goB{background:var(--ac);color:#fff;border:none;border-radius:16px;padding:18px;font-size:17px;font-weight:800;width:100%;cursor:pointer;font-family:inherit;box-shadow:0 10px 26px rgba(47,107,255,.4)}
+#tour .ctl{display:flex;gap:10px;margin-top:10px}#tour .ctl button{flex:1;min-height:56px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+#tour .prev{background:rgba(255,255,255,.12);color:#fff}#tour .done{background:var(--ok);color:#fff}
+#disc{position:fixed;inset:0;background:rgba(8,12,24,.74);z-index:80;display:none;align-items:center;justify-content:center;padding:22px}
+#disc .box{background:#fff;border-radius:20px;padding:24px;max-width:420px}#disc h3{font-size:20px;margin-bottom:10px}#disc p{font-size:14px;color:#374151;margin-bottom:18px;line-height:1.55}
+#disc button{width:100%;background:var(--ac);color:#fff;border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+
+.langs select{background:#f0f3f8;border:none;color:#0b1220;border-radius:8px;padding:8px 9px;font-weight:700;font-size:12px;font-family:inherit}
+.topbar{border-radius:10px}.sheet{border-radius:14px 14px 0 0;box-shadow:0 -6px 22px rgba(11,18,32,.12)}
+.btn,.actions button,#routeBtn,#startBtn,#tour .goB,#tour .ctl button,.summary,.steps,.warnline,.transbox .r,#disc .box{border-radius:9px}
+textarea,input[type=number],select,.mini,.num{border-radius:7px}.fab{border-radius:12px}
+#routeBtn,#startBtn{box-shadow:none}.summary{background:#0b1220}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="topbar">
+  <div class="brand">🚚 <span><span data-i18n="title"></span><small data-i18n="subtitle"></small></span></div>
+  <div class="langs"><select id="langSel" onchange="setLang(this.value)" aria-label="Langue"><option value="fr">FR</option><option value="en">EN</option><option value="nl">NL</option><option value="de">DE</option><option value="bg">BG</option><option value="tr">TR</option><option value="ro">RO</option><option value="pl">PL</option></select></div>
+</div>
+<button class="fab" onclick="locateMe()" aria-label="position">📍</button>
+<button class="fab" style="top:calc(46vh - 118px)" onclick="openCam()" aria-label="camera">📷</button>
+
+<div class="sheet">
+  <div class="handle"></div>
+  <div id="routeStatus"></div>
+  <div class="summary" id="sum"></div>
+  <div class="steps" id="steps"></div>
+
+  <div class="sect">
+    <h2 data-i18n="step2"></h2>
+    <div class="count" id="count"></div>
+    <div id="list"></div>
+    <div class="lab" style="margin-top:12px" data-i18n="step1"></div>
+    <textarea id="paste" data-i18n-ph="pastePh"></textarea>
+    <div class="row">
+      <button class="btn p" onclick="addPasted()" data-i18n="addBtn"></button>
+      <label class="btn s" style="cursor:pointer"><span data-i18n="scanBtn"></span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="scanPhoto(event)" /></label>
+    </div>
+    <div class="warnline" data-i18n="osmWarn"></div>
+  </div>
+
+  <div class="sect">
+    <h2 data-i18n="vehTitle"></h2>
+    <div class="veh">
+      <div><label data-i18n="vh"></label><input type="number" id="vH" value="4.0" step="0.1" min="1" /></div>
+      <div><label data-i18n="vw"></label><input type="number" id="vW" value="26" step="0.5" min="1" /></div>
+      <div><label data-i18n="vwid"></label><input type="number" id="vWi" value="2.55" step="0.05" min="1" /></div>
+      <div><label data-i18n="vlen"></label><input type="number" id="vL" value="16.5" step="0.5" min="1" /></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="vAdr" style="width:20px;height:20px" /> <span data-i18n="vadr"></span></label>
+  </div>
+
+  <div class="sect">
+    <h2 data-i18n="transTitle"></h2>
+    <div class="row" style="margin-top:0;align-items:center"><span class="count" style="margin:0" data-i18n="noteIn"></span><select id="noteLang" style="width:auto"><option value="fr">FR</option><option value="nl">NL</option><option value="en">EN</option><option value="de">DE</option></select></div>
+    <div class="row"><label class="btn p" style="cursor:pointer"><span data-i18n="photoNote"></span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="scanNote(event)" /></label></div>
+    <textarea id="noteText" data-i18n-ph="transPastePh" style="min-height:50px;margin-top:10px"></textarea>
+    <div class="row"><button class="btn g" onclick="translatePasted()" data-i18n="translateBtn"></button></div>
+    <div id="noteStatus"></div>
+    <div class="transbox" id="transbox"><div class="o" id="transO"></div><div class="r" id="transR"></div></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<div class="actions">
+  <button id="routeBtn" onclick="routeTruck()" data-i18n="routeBtn"></button>
+  <button id="startBtn" onclick="startTour()" data-i18n="startTour"></button>
+</div>
+
+<div id="cam" style="position:fixed;inset:0;z-index:60;display:none;background:#000">
+  <video id="camv" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover"></video>
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:18px;pointer-events:none">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div style="background:rgba(11,18,32,.72);color:#fff;border-radius:14px;padding:10px 14px;max-width:74%"><div style="font-size:11px;color:#9fb1cf" data-i18n="camNext"></div><div id="camStop" style="font-size:18px;font-weight:800"></div></div>
+      <button onclick="closeCam()" style="pointer-events:auto;background:rgba(11,18,32,.72);color:#fff;border:none;border-radius:12px;padding:11px 14px;font-weight:700;font-family:inherit" data-i18n="exitTour"></button>
+    </div>
+    <div id="camRes" style="pointer-events:auto;display:none;background:rgba(245,158,11,.96);color:#3a2400;border-radius:14px;padding:12px 14px;font-weight:700"></div>
+    <div style="pointer-events:auto">
+      <div style="font-size:11px;color:#e5e7eb;text-align:center;margin-bottom:8px" data-i18n="camWarn"></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button onclick="snapSign()" style="flex:1;background:#2f6bff;color:#fff;border:none;border-radius:14px;padding:16px;font-weight:800;font-size:15px;font-family:inherit" data-i18n="readSign"></button>
+        <label style="background:rgba(255,255,255,.18);color:#fff;border-radius:14px;padding:14px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:7px"><input type="checkbox" id="camAuto" onchange="toggleAuto()" style="width:18px;height:18px" /> <span data-i18n="autoDetect"></span></label>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tour">
+  <button class="exit" onclick="exitTour()" data-i18n="exitTour"></button>
+  <div class="prog" id="tprog"></div><div class="barwrap"><div class="bar" id="tbar"></div></div>
+  <div class="cur" id="tcur"></div>
+  <button class="goB" onclick="tourGo()">🧭 <span data-i18n="goThere"></span></button>
+  <div class="ctl"><button class="prev" onclick="tourPrev()" data-i18n="prevBtn"></button><button class="done" onclick="tourDone()" data-i18n="doneBtn"></button></div>
+</div>
+<div id="disc"><div class="box"><h3>⚠️</h3><p data-i18n="disclaimer"></p><button onclick="closeDisc()" data-i18n="okBtn"></button></div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+/* ====== CONFIG (a remplir UNE fois par Erdem) ======
+   Colle ici l'URL de ton proxy Cloudflare (voir worker.js). Le chauffeur n'a AUCUNE cle a saisir. */
+var PROXY_BASE = ""; // ex: "https://ma-tournee-proxy.toncompte.workers.dev"
+/* =================================================== */
+var I18N={
+ fr:{title:"Ma Tournée",subtitle:"Navigation camion — restrictions, scan, traduction",vehTitle:"🚛 Mon véhicule",vh:"Hauteur (m)",vw:"Poids (t)",vwid:"Largeur (m)",vlen:"Longueur (m)",vadr:"Matières dangereuses (ADR)",step1:"1. Ajouter des arrêts",pastePh:"Colle tes adresses, une par ligne\nEx : Rue de Mons 12, 7130 Binche",addBtn:"+ Ajouter",scanBtn:"📷 Scanner",step2:"2. Itinéraire camion",locate:"📍 Ma position",empty:"Aucun arrêt.",osmWarn:"⚠️ Itinéraire sur données ouvertes (OSM), parfois incomplètes. Vérifie toujours les panneaux (ponts bas, tonnage). Conducteur seul responsable.",routeBtn:"🧭 Itinéraire",startTour:"▶️ Tournée",reading:"Lecture…",scanOk:"✅ Lu — vérifie.",scanErr:"⚠️ Photo illisible.",lowConf:"⚠️ Photo peu lisible — vérifie le texte.",routing:"Calcul de l'itinéraire…",notConfigured:"App non configurée (proxy manquant).",vehErr:"Remplis les dimensions du véhicule.",geoErr:"Adresse introuvable : ",routeErr:"⚠️ Itinéraire impossible.",errNet:"⚠️ Pas de réseau — vérifie ta connexion.",errKey:"⚠️ Service indisponible (config).",errQuota:"⚠️ Trop de demandes — attends 1 min.",errDay:"⚠️ Quota du jour atteint.",tooMany:"Maximum 50 arrêts.",min2:"Ajoute au moins 2 arrêts.",sum:"{km} km · {min} min",stop:"arrêt",stops:"arrêts",goThere:"Centrer",next:"Suivant",doneBtn:"✓ Fait",prevBtn:"← Précédent",exitTour:"Quitter",finished:"Tournée terminée 🎉",transTitle:"🔤 Traduire une note",noteIn:"Note en :",photoNote:"📷 Photographier la note",transPastePh:"…ou colle le texte",translateBtn:"Traduire",translating:"Traduction…",transErr:"⚠️ Traduction impossible.",truncated:"⚠️ Texte coupé à 480 caractères.",disclaimer:"Itinéraires à titre indicatif (données OSM parfois incomplètes). Vérifie toujours la signalisation (ponts bas, tonnage, interdictions). Le conducteur reste seul responsable. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO.",okBtn:"J'ai compris",foot:"Cartes © CARTO · Données © OpenStreetMap · Routage © openrouteservice (HeiGIT)"},
+ bg:{title:"Моят маршрут",subtitle:"Навигация за камион — ограничения, скан, превод",vehTitle:"🚛 Моето превозно средство",vh:"Височина (м)",vw:"Тегло (т)",vwid:"Ширина (м)",vlen:"Дължина (м)",vadr:"Опасни товари (ADR)",step1:"1. Добави спирки",pastePh:"Постави адресите, по един на ред\nНапр.: Rue de Mons 12, 7130 Binche",addBtn:"+ Добави",scanBtn:"📷 Сканирай",step2:"2. Маршрут за камион",locate:"📍 Моята позиция",empty:"Няма спирки.",osmWarn:"⚠️ Маршрут по отворени данни (OSM), понякога непълни. Винаги проверявай табелите (ниски мостове, тонаж). Шофьорът носи отговорност.",routeBtn:"🧭 Маршрут",startTour:"▶️ Маршрут",reading:"Четене…",scanOk:"✅ Прочетено — провери.",scanErr:"⚠️ Нечетлива снимка.",lowConf:"⚠️ Нечетлива снимка — провери текста.",routing:"Изчисляване…",notConfigured:"Приложението не е конфигурирано (липсва прокси).",vehErr:"Попълни размерите на превозното средство.",geoErr:"Адресът не е намерен: ",routeErr:"⚠️ Маршрутът е невъзможен.",errNet:"⚠️ Няма мрежа — провери връзката.",errKey:"⚠️ Услугата е недостъпна (конфиг.).",errQuota:"⚠️ Твърде много заявки — изчакай 1 мин.",errDay:"⚠️ Дневният лимит е достигнат.",tooMany:"Максимум 50 спирки.",min2:"Добави поне 2 спирки.",sum:"{km} км · {min} мин",stop:"спирка",stops:"спирки",goThere:"Центрирай",next:"Следваща",doneBtn:"✓ Готово",prevBtn:"← Назад",exitTour:"Изход",finished:"Маршрутът завърши 🎉",transTitle:"🔤 Преведи бележка",noteIn:"Бележка на:",photoNote:"📷 Снимай бележката",transPastePh:"…или постави текста",translateBtn:"Преведи",translating:"Превод…",transErr:"⚠️ Преводът е невъзможен.",truncated:"⚠️ Текстът е съкратен до 480 знака.",disclaimer:"Маршрутите са ориентировъчни (данни OSM, понякога непълни). Винаги проверявай знаците (ниски мостове, тонаж, забрани). Шофьорът носи цялата отговорност. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO.",okBtn:"Разбрах",foot:"Карти © CARTO · Данни © OpenStreetMap · Маршрути © openrouteservice (HeiGIT)"},
+ tr:{title:"Turum",subtitle:"Kamyon navigasyonu — kısıtlamalar, tarama, çeviri",vehTitle:"🚛 Aracım",vh:"Yükseklik (m)",vw:"Ağırlık (t)",vwid:"Genişlik (m)",vlen:"Uzunluk (m)",vadr:"Tehlikeli madde (ADR)",step1:"1. Durak ekle",pastePh:"Adresleri yapıştır, her satıra bir tane\nÖr: Rue de Mons 12, 7130 Binche",addBtn:"+ Ekle",scanBtn:"📷 Tara",step2:"2. Kamyon rotası",locate:"📍 Konumum",empty:"Durak yok.",osmWarn:"⚠️ Rota açık veriyle (OSM), bazen eksik. Tabelaları her zaman kontrol et (alçak köprü, tonaj). Sorumluluk sürücüdedir.",routeBtn:"🧭 Rota",startTour:"▶️ Tur",reading:"Okunuyor…",scanOk:"✅ Okundu — kontrol et.",scanErr:"⚠️ Fotoğraf okunamadı.",lowConf:"⚠️ Fotoğraf net değil — metni kontrol et.",routing:"Rota hesaplanıyor…",notConfigured:"Uygulama yapılandırılmadı (proxy yok).",vehErr:"Araç ölçülerini doldur.",geoErr:"Adres bulunamadı: ",routeErr:"⚠️ Rota oluşturulamadı.",errNet:"⚠️ Ağ yok — bağlantını kontrol et.",errKey:"⚠️ Servis kullanılamıyor (yapılandırma).",errQuota:"⚠️ Çok fazla istek — 1 dk bekle.",errDay:"⚠️ Günlük kota doldu.",tooMany:"En fazla 50 durak.",min2:"En az 2 durak ekle.",sum:"{km} km · {min} dk",stop:"durak",stops:"durak",goThere:"Ortala",next:"Sonraki",doneBtn:"✓ Tamam",prevBtn:"← Geri",exitTour:"Çık",finished:"Tur tamamlandı 🎉",transTitle:"🔤 Notu çevir",noteIn:"Not dili:",photoNote:"📷 Notu fotoğrafla",transPastePh:"…ya da metni yapıştır",translateBtn:"Çevir",translating:"Çevriliyor…",transErr:"⚠️ Çeviri başarısız.",truncated:"⚠️ Metin 480 karaktere kısaltıldı.",disclaimer:"Rotalar bilgilendirme amaçlıdır (OSM verisi bazen eksik). Tabelaları her zaman kontrol et (alçak köprü, tonaj, yasaklar). Sorumluluk tamamen sürücüdedir. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO.",okBtn:"Anladım",foot:"Haritalar © CARTO · Veri © OpenStreetMap · Rota © openrouteservice (HeiGIT)"}
+};
+var I18N_EXTRA={
+ fr:{camNext:"Prochain arrêt",readSign:"📷 Lire le panneau",autoDetect:"Auto (béta)",camWarn:"Détection assistée — reste vigilant, vérifie toujours la route.",detected:"Panneau : ",camErr:"Caméra indisponible (HTTPS requis)."},
+ bg:{camNext:"Следваща спирка",readSign:"📷 Прочети табелата",autoDetect:"Авто (бета)",camWarn:"Подпомогнато разпознаване — внимавай, винаги проверявай пътя.",detected:"Табела: ",camErr:"Камерата не е достъпна (нужен е HTTPS)."},
+ tr:{camNext:"Sonraki durak",readSign:"📷 Tabelayı oku",autoDetect:"Oto (beta)",camWarn:"Yardımcı algılama — dikkatli ol, yolu her zaman kontrol et.",detected:"Tabela: ",camErr:"Kamera kullanılamıyor (HTTPS gerekli)."}
+};Object.keys(I18N_EXTRA).forEach(function(k){for(var p in I18N_EXTRA[k])I18N[k][p]=I18N_EXTRA[k][p];});
+var I18N_MORE={
+ en:{title:"My Route",subtitle:"Truck navigation — limits, scan, translate",vehTitle:"🚛 My vehicle",vh:"Height (m)",vw:"Weight (t)",vwid:"Width (m)",vlen:"Length (m)",vadr:"Dangerous goods (ADR)",step1:"1. Add stops",pastePh:"Paste addresses, one per line\nEx: Rue de Mons 12, 7130 Binche",addBtn:"+ Add",scanBtn:"📷 Scan",step2:"2. Truck route",empty:"No stops.",osmWarn:"⚠️ Route from open data (OSM), sometimes incomplete. Always check signs (low bridges, weight). Driver is responsible.",routeBtn:"🧭 Route",startTour:"▶️ Tour",transTitle:"🔤 Translate a note",noteIn:"Note in:",photoNote:"📷 Photograph the note",translateBtn:"Translate",goThere:"Center",next:"Next",doneBtn:"✓ Done",prevBtn:"← Previous",exitTour:"Exit",finished:"Tour finished 🎉",sum:"{km} km · {min} min",stop:"stop",stops:"stops",okBtn:"Got it",readSign:"📷 Read the sign",autoDetect:"Auto (beta)",camWarn:"Assisted detection — stay alert, always watch the road.",camNext:"Next stop",detected:"Sign: ",disclaimer:"Routes are indicative (OSM data may be incomplete). Always check road signs (low bridges, weight, bans). The driver remains solely responsible. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO."},
+ nl:{title:"Mijn Route",subtitle:"Vrachtwagennavigatie — beperkingen, scan, vertaling",vehTitle:"🚛 Mijn voertuig",vh:"Hoogte (m)",vw:"Gewicht (t)",vwid:"Breedte (m)",vlen:"Lengte (m)",vadr:"Gevaarlijke stoffen (ADR)",step1:"1. Stops toevoegen",pastePh:"Plak adressen, één per regel\nBv: Rue de Mons 12, 7130 Binche",addBtn:"+ Toevoegen",scanBtn:"📷 Scannen",step2:"2. Vrachtwagenroute",empty:"Geen stops.",osmWarn:"⚠️ Route op open data (OSM), soms onvolledig. Controleer altijd de borden (lage bruggen, gewicht). Chauffeur is verantwoordelijk.",routeBtn:"🧭 Route",startTour:"▶️ Ronde",transTitle:"🔤 Notitie vertalen",noteIn:"Notitie in:",photoNote:"📷 Foto van de notitie",translateBtn:"Vertalen",goThere:"Centreren",next:"Volgende",doneBtn:"✓ Klaar",prevBtn:"← Vorige",exitTour:"Sluiten",finished:"Ronde voltooid 🎉",sum:"{km} km · {min} min",stop:"stop",stops:"stops",okBtn:"Begrepen",readSign:"📷 Lees het bord",autoDetect:"Auto (beta)",camWarn:"Ondersteunde detectie — blijf alert, kijk altijd naar de weg.",camNext:"Volgende stop",detected:"Bord: ",disclaimer:"Routes zijn indicatief (OSM-data kan onvolledig zijn). Controleer altijd de verkeersborden (lage bruggen, gewicht, verboden). De chauffeur blijft als enige verantwoordelijk. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO."},
+ de:{title:"Meine Tour",subtitle:"LKW-Navigation — Beschränkungen, Scan, Übersetzung",vehTitle:"🚛 Mein Fahrzeug",vh:"Höhe (m)",vw:"Gewicht (t)",vwid:"Breite (m)",vlen:"Länge (m)",vadr:"Gefahrgut (ADR)",step1:"1. Stopps hinzufügen",pastePh:"Adressen einfügen, eine pro Zeile\nz. B.: Rue de Mons 12, 7130 Binche",addBtn:"+ Hinzufügen",scanBtn:"📷 Scannen",step2:"2. LKW-Route",empty:"Keine Stopps.",osmWarn:"⚠️ Route aus offenen Daten (OSM), teils unvollständig. Immer die Schilder prüfen (niedrige Brücken, Gewicht). Fahrer ist verantwortlich.",routeBtn:"🧭 Route",startTour:"▶️ Tour",transTitle:"🔤 Notiz übersetzen",noteIn:"Notiz in:",photoNote:"📷 Notiz fotografieren",translateBtn:"Übersetzen",goThere:"Zentrieren",next:"Weiter",doneBtn:"✓ Fertig",prevBtn:"← Zurück",exitTour:"Schließen",finished:"Tour beendet 🎉",sum:"{km} km · {min} Min",stop:"Stopp",stops:"Stopps",okBtn:"Verstanden",readSign:"📷 Schild lesen",autoDetect:"Auto (Beta)",camWarn:"Assistierte Erkennung — bleib aufmerksam, achte stets auf die Straße.",camNext:"Nächster Stopp",detected:"Schild: ",disclaimer:"Routen sind Richtwerte (OSM-Daten können unvollständig sein). Prüfe immer die Verkehrsschilder (niedrige Brücken, Gewicht, Verbote). Der Fahrer bleibt allein verantwortlich. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO."},
+ ro:{title:"Traseul meu",subtitle:"Navigație camion — restricții, scanare, traducere",vehTitle:"🚛 Vehiculul meu",vh:"Înălțime (m)",vw:"Greutate (t)",vwid:"Lățime (m)",vlen:"Lungime (m)",vadr:"Mărfuri periculoase (ADR)",step1:"1. Adaugă opriri",pastePh:"Lipește adresele, una pe rând\nEx: Rue de Mons 12, 7130 Binche",addBtn:"+ Adaugă",scanBtn:"📷 Scanează",step2:"2. Rută camion",empty:"Nicio oprire.",osmWarn:"⚠️ Rută din date deschise (OSM), uneori incomplete. Verifică mereu indicatoarele (poduri joase, tonaj). Șoferul este responsabil.",routeBtn:"🧭 Rută",startTour:"▶️ Tur",transTitle:"🔤 Traduce o notă",noteIn:"Notă în:",photoNote:"📷 Fotografiază nota",translateBtn:"Traduce",goThere:"Centrează",next:"Următor",doneBtn:"✓ Gata",prevBtn:"← Înapoi",exitTour:"Ieșire",finished:"Tur finalizat 🎉",sum:"{km} km · {min} min",stop:"oprire",stops:"opriri",okBtn:"Am înțeles",readSign:"📷 Citește indicatorul",autoDetect:"Auto (beta)",camWarn:"Detectare asistată — fii atent, verifică mereu drumul.",camNext:"Următoarea oprire",detected:"Indicator: ",disclaimer:"Rutele sunt orientative (datele OSM pot fi incomplete). Verifică mereu indicatoarele (poduri joase, tonaj, interdicții). Șoferul rămâne singurul responsabil. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO."},
+ pl:{title:"Moja trasa",subtitle:"Nawigacja ciężarówki — ograniczenia, skan, tłumaczenie",vehTitle:"🚛 Mój pojazd",vh:"Wysokość (m)",vw:"Masa (t)",vwid:"Szerokość (m)",vlen:"Długość (m)",vadr:"Towary niebezpieczne (ADR)",step1:"1. Dodaj przystanki",pastePh:"Wklej adresy, jeden na linię\nNp: Rue de Mons 12, 7130 Binche",addBtn:"+ Dodaj",scanBtn:"📷 Skanuj",step2:"2. Trasa ciężarówki",empty:"Brak przystanków.",osmWarn:"⚠️ Trasa z danych otwartych (OSM), czasem niekompletnych. Zawsze sprawdzaj znaki (niskie mosty, tonaż). Kierowca odpowiada.",routeBtn:"🧭 Trasa",startTour:"▶️ Trasa",transTitle:"🔤 Przetłumacz notatkę",noteIn:"Notatka w:",photoNote:"📷 Sfotografuj notatkę",translateBtn:"Tłumacz",goThere:"Wyśrodkuj",next:"Następny",doneBtn:"✓ Gotowe",prevBtn:"← Wstecz",exitTour:"Wyjście",finished:"Trasa zakończona 🎉",sum:"{km} km · {min} min",stop:"przystanek",stops:"przystanki",okBtn:"Rozumiem",readSign:"📷 Odczytaj znak",autoDetect:"Auto (beta)",camWarn:"Wykrywanie wspomagane — zachowaj czujność, zawsze patrz na drogę.",camNext:"Następny przystanek",detected:"Znak: ",disclaimer:"Trasy mają charakter orientacyjny (dane OSM mogą być niekompletne). Zawsze sprawdzaj znaki (niskie mosty, tonaż, zakazy). Kierowca ponosi wyłączną odpowiedzialność. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO."}
+};Object.keys(I18N_MORE).forEach(function(k){I18N[k]=I18N_MORE[k];});I18N.fr.stdMode='Mode standard (voiture) — sans restrictions camion. Configure le moteur camion pour les éviter.';if(I18N.en)I18N.en.stdMode='Standard mode (car) — no truck limits. Set up the truck engine to avoid them.';
+var SRC2TESS={fr:'fra',nl:'nld',en:'eng',de:'deu',bg:'bul',tr:'tur',ro:'ron',pl:'pol'};
+var ORSLANG={fr:'fr',bg:'en',tr:'en',en:'en',nl:'nl',de:'de',ro:'en',pl:'en'};var SPEAK={fr:'fr-FR',bg:'bg-BG',tr:'tr-TR',en:'en-GB',nl:'nl-NL',de:'de-DE',ro:'ro-RO',pl:'pl-PL'};var EMAIL='expedipro.srl@gmail.com';
+var lang=localStorage.getItem('mt_lang')||'fr';
+var stops=[];try{var _s=JSON.parse(localStorage.getItem('mt_stops')||'[]');stops=Array.isArray(_s)?_s:[];}catch(e){stops=[];}
+var coordCache={};try{coordCache=JSON.parse(localStorage.getItem('mt_coords')||'{}')||{};}catch(e){coordCache={};}
+var tourIdx=0,map,routeLayer,markerLayer,meMarker,_isRouting=false;
+function t(k){return (I18N[lang]&&I18N[lang][k])||I18N.fr[k]||k;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function save(){localStorage.setItem('mt_stops',JSON.stringify(stops));localStorage.setItem('mt_coords',JSON.stringify(coordCache));}
+function setLang(l){lang=l;localStorage.setItem('mt_lang',l);document.documentElement.lang=l;applyI18n();}
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(function(e){e.textContent=t(e.dataset.i18n);});
+  document.querySelectorAll('[data-i18n-ph]').forEach(function(e){e.placeholder=t(e.dataset.i18nPh);});
+  var ls=document.getElementById('langSel');if(ls)ls.value=lang;
+  document.getElementById('foot').textContent=t('foot');render();if(document.getElementById('tour').style.display==='flex')renderTour(false);
+}
+function render(){
+  document.getElementById('count').textContent=stops.length+' '+(stops.length===1?t('stop'):t('stops'));
+  document.getElementById('routeBtn').disabled=stops.length<2;document.getElementById('startBtn').disabled=stops.length<1;
+  var list=document.getElementById('list');
+  if(!stops.length){list.innerHTML='<div class="empty">'+t('empty')+'</div>';return;}
+  list.innerHTML='';
+  stops.forEach(function(s,i){var d=document.createElement('div');d.className='stop';
+    d.innerHTML='<span class="num">'+(i+1)+'</span><input value="'+esc(s)+'" onchange="edit('+i+',this.value)" /><button class="mini" onclick="mv('+i+',-1)">↑</button><button class="mini" onclick="mv('+i+',1)">↓</button><button class="mini del" onclick="del('+i+')">✕</button>';
+    list.appendChild(d);});
+}
+function addLines(x){var a=x.split(/\n+/).map(function(l){return l.trim();}).filter(function(l){return l.length>3;});stops=stops.concat(a);save();render();}
+function addPasted(){var e=document.getElementById('paste');if(e.value.trim()){addLines(e.value);e.value='';}}
+function edit(i,v){stops[i]=v.trim();save();}function del(i){stops.splice(i,1);save();render();}
+function mv(i,d){var j=i+d;if(j<0||j>=stops.length)return;var x=stops[i];stops[i]=stops[j];stops[j]=x;save();render();}
+function ocr(f,l,el,cb){el.style.display='block';el.style.color='var(--blue)';el.textContent=t('reading')+' 0%';
+  Tesseract.recognize(f,l,{logger:function(m){if(m.status==='recognizing text')el.textContent=t('reading')+' '+Math.round(m.progress*100)+'%';}})
+   .then(function(r){el.textContent=r.data.confidence<45?t('lowConf'):t('scanOk');cb(r.data.text);setTimeout(function(){el.style.display='none';},3500);})
+   .catch(function(){el.style.color='var(--red)';el.textContent=t('scanErr');});}
+function scanPhoto(ev){var f=ev.target.files[0];if(!f)return;ocr(f,SRC2TESS[lang]||'fra',document.getElementById('scanStatus'),function(x){addLines(x);});ev.target.value='';}
+function scanNote(ev){var f=ev.target.files[0];if(!f)return;var src=document.getElementById('noteLang').value;ocr(f,SRC2TESS[src]||'fra',document.getElementById('noteStatus'),function(x){document.getElementById('noteText').value=x.trim();translateText(x);});ev.target.value='';}
+function translatePasted(){translateText(document.getElementById('noteText').value);}
+function translateText(text){text=(text||'').trim();if(!text)return;var box=document.getElementById('transbox');box.style.display='block';document.getElementById('transO').textContent=text;var R=document.getElementById('transR');R.textContent=t('translating');
+  var ns=document.getElementById('noteStatus');if(text.length>480){ns.style.display='block';ns.style.color='var(--red)';ns.textContent=t('truncated');}
+  var src=document.getElementById('noteLang').value,tgt=lang;if(src===tgt){R.textContent=text;return;}
+  fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text.slice(0,480))+'&langpair='+src+'|'+tgt+'&de='+encodeURIComponent(EMAIL)).then(function(r){return r.json();})
+   .then(function(d){if(d&&d.responseStatus&&d.responseStatus!=200&&d.responseStatus!=='200'){R.textContent=t('transErr');return;}R.textContent=(d&&d.responseData&&d.responseData.translatedText)?d.responseData.translatedText:t('transErr');}).catch(function(){R.textContent=t('transErr');});}
+/* ---- Carte + GPS camion via PROXY (aucune cle cote chauffeur) ---- */
+function initMap(){map=L.map('map').setView([50.41,4.16],8);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',{subdomains:'abcd',maxZoom:20,attribution:'© CARTO © OpenStreetMap'}).addTo(map);routeLayer=L.layerGroup().addTo(map);markerLayer=L.layerGroup().addTo(map);setTimeout(function(){map.invalidateSize();},200);}
+function locateMe(){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(function(p){var ll=[p.coords.latitude,p.coords.longitude];if(meMarker)meMarker.setLatLng(ll);else meMarker=L.circleMarker(ll,{radius:9,color:'#1e5eff',fillColor:'#1e5eff',fillOpacity:.9}).addTo(map);map.setView(ll,13);},function(){},{enableHighAccuracy:true,timeout:8000});}
+async function geocode(addr){if(coordCache[addr])return coordCache[addr];var u='https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language='+lang+'&countrycodes=be,fr,nl,de,lu&q='+encodeURIComponent(addr);var ctrl=new AbortController();var to=setTimeout(function(){ctrl.abort();},9000);var r;try{r=await fetch(u,{headers:{'Accept':'application/json'},signal:ctrl.signal});}finally{clearTimeout(to);}if(!r.ok)throw {kind:'http',status:r.status};var d=await r.json();if(d&&d.length){var c=[parseFloat(d[0].lon),parseFloat(d[0].lat)];coordCache[addr]=c;save();return c;}return null;}
+async function routeTruck(){
+  if(_isRouting)return;
+  if(stops.length<2){alert(t('min2'));return;}
+  if(stops.length>50){alert(t('tooMany'));return;}
+  var fields=['vH','vW','vWi','vL'];for(var fi=0;fi<fields.length;fi++){var vv=document.getElementById(fields[fi]).value;if(vv===''||parseFloat(vv)<=0){alert(t('vehErr'));document.getElementById(fields[fi]).focus();return;}}
+  _isRouting=true;
+  var st=document.getElementById('routeStatus');st.style.display='block';st.style.color='var(--ac)';st.textContent=t('routing');
+  document.getElementById('sum').style.display='none';document.getElementById('steps').style.display='none';
+  routeLayer.clearLayers();markerLayer.clearLayers();
+  try{
+    var coords=[];
+    for(var i=0;i<stops.length;i++){var c=await geocode(stops[i]);if(!c){st.style.color='var(--red)';st.textContent=t('geoErr')+stops[i];_isRouting=false;return;}coords.push(c);}
+    var gj=null,std=false;
+    if(PROXY_BASE){
+      var body={coordinates:coords,instructions:true,language:ORSLANG[lang]||'en',options:{vehicle_type:'hgv',profile_params:{restrictions:{height:parseFloat(document.getElementById('vH').value),weight:parseFloat(document.getElementById('vW').value),width:parseFloat(document.getElementById('vWi').value),length:parseFloat(document.getElementById('vL').value)}}}};
+      if(document.getElementById('vAdr').checked)body.options.profile_params.restrictions.hazmat=true;
+      var ctrl=new AbortController();var to=setTimeout(function(){ctrl.abort();},20000);var rr;
+      try{rr=await fetch(PROXY_BASE+'/route',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});}finally{clearTimeout(to);}
+      if(rr.status===401||rr.status===500){st.style.color='var(--red)';st.textContent=t('errKey');_isRouting=false;return;}
+      if(rr.status===429){st.style.color='var(--red)';st.textContent=t('errQuota');_isRouting=false;return;}
+      if(rr.status===403){st.style.color='var(--red)';st.textContent=t('errDay');_isRouting=false;return;}
+      gj=await rr.json();
+      if(gj&&gj.error){st.style.color='var(--red)';st.textContent='⚠️ '+(gj.error.message||t('routeErr'));_isRouting=false;return;}
+    }else{
+      std=true;
+      var path=coords.map(function(c){return c[0]+','+c[1];}).join(';');
+      var uu='https://router.project-osrm.org/route/v1/driving/'+path+'?overview=full&geometries=geojson&steps=true';
+      var ctrl2=new AbortController();var to2=setTimeout(function(){ctrl2.abort();},20000);var r2;
+      try{r2=await fetch(uu,{signal:ctrl2.signal});}finally{clearTimeout(to2);}
+      var oj=await r2.json();
+      if(!oj||oj.code!=='Ok'||!oj.routes||!oj.routes.length){st.style.color='var(--red)';st.textContent=t('routeErr');_isRouting=false;return;}
+      var rt=oj.routes[0];
+      gj={type:'FeatureCollection',features:[{type:'Feature',geometry:rt.geometry,properties:{summary:{distance:rt.distance,duration:rt.duration},segments:(rt.legs||[]).map(function(lg){return {steps:(lg.steps||[]).map(function(s){return {instruction:((s.maneuver&&s.maneuver.type)||'')+' '+(s.name||''),distance:s.distance};})};})}}]};
+    }
+    if(!gj||!gj.features||!gj.features.length){st.style.color='var(--red)';st.textContent=t('routeErr');_isRouting=false;return;}
+    st.style.display='none';
+    var line=L.geoJSON(gj,{style:{color:'#2f6bff',weight:6,opacity:.85}}).addTo(routeLayer);
+    coords.forEach(function(c,idx){L.marker([c[1],c[0]]).addTo(markerLayer).bindPopup((idx+1)+'. '+esc(stops[idx]));});
+    var b=line.getBounds();if(b.isValid())map.fitBounds(b,{padding:[30,30]});
+    var p=gj.features[0].properties.summary||{distance:0,duration:0};
+    var sm=document.getElementById('sum');sm.style.display='block';sm.textContent=t('sum').replace('{km}',(p.distance/1000).toFixed(1)).replace('{min}',Math.round(p.duration/60))+(std?' · '+t('stdMode'):'');
+    var segs=gj.features[0].properties.segments||[];var box=document.getElementById('steps');box.innerHTML='';
+    segs.forEach(function(sg){(sg.steps||[]).forEach(function(stp){if(!stp.instruction||!stp.instruction.trim())return;var d=document.createElement('div');d.textContent='➡️ '+stp.instruction+(stp.distance?' ('+Math.round(stp.distance)+' m)':'');box.appendChild(d);});});
+    if(box.innerHTML)box.style.display='block';
+  }catch(e){st.style.color='var(--red)';st.textContent=(e instanceof TypeError||(e&&e.name==='AbortError'))?t('errNet'):t('routeErr');}
+  _isRouting=false;
+}
+function speak(txt){try{if('speechSynthesis'in window){speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(txt);u.lang=SPEAK[lang]||'fr-FR';speechSynthesis.speak(u);}}catch(e){}}
+function startTour(){if(!stops.length)return;tourIdx=0;document.getElementById('tour').style.display='flex';renderTour(true);}
+function exitTour(){document.getElementById('tour').style.display='none';try{speechSynthesis.cancel();}catch(e){}}
+function renderTour(doSpeak){var n=stops.length;
+  if(tourIdx>=n){document.getElementById('tcur').innerHTML='<div style="text-align:center;font-size:1.5rem;font-weight:800">'+t('finished')+'</div>';document.getElementById('tprog').textContent='';document.getElementById('tbar').style.width='100%';return;}
+  document.getElementById('tprog').textContent=(t('stop').charAt(0).toUpperCase()+t('stop').slice(1))+' '+(tourIdx+1)+' / '+n;document.getElementById('tbar').style.width=(tourIdx/n*100)+'%';
+  var nx=(tourIdx+1<n)?(t('next')+' : '+stops[tourIdx+1]):'—';
+  document.getElementById('tcur').innerHTML='<div class="lbl">'+t('stop')+' '+(tourIdx+1)+'</div><div class="addr">'+esc(stops[tourIdx])+'</div><div class="nxt">'+esc(nx)+'</div>';
+  if(doSpeak)speak(stops[tourIdx]);}
+function tourGo(){if(tourIdx>=stops.length)return;var a=stops[tourIdx];var c=coordCache[a];if(c&&map){exitTour();map.setView([c[1],c[0]],15);return;}geocode(a).then(function(c){if(c&&map){exitTour();map.setView([c[1],c[0]],15);}else{alert(t('geoErr')+a);}}).catch(function(){alert(t('errNet'));});}
+function tourDone(){if(tourIdx<stops.length){tourIdx++;renderTour(true);}}
+function tourPrev(){if(tourIdx>0){tourIdx--;renderTour(true);}}
+function closeDisc(){document.getElementById('disc').style.display='none';localStorage.setItem('mt_seen','1');}
+var camStream=null,camTimer=null,_camBusy=false;
+function openCam(){if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert(t('camErr'));return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}).then(function(s){camStream=s;document.getElementById('camv').srcObject=s;document.getElementById('cam').style.display='block';var a=stops[Math.min(tourIdx,Math.max(0,stops.length-1))]||stops[0]||'';document.getElementById('camStop').textContent=a;if(a)speak(a);}).catch(function(){alert(t('camErr'));});}
+function closeCam(){document.getElementById('cam').style.display='none';if(camTimer){clearInterval(camTimer);camTimer=null;}var ca=document.getElementById('camAuto');if(ca)ca.checked=false;if(camStream){camStream.getTracks().forEach(function(tk){tk.stop();});camStream=null;}try{speechSynthesis.cancel();}catch(e){}}
+function grabFrame(){var v=document.getElementById('camv');var c=document.createElement('canvas');var w=v.videoWidth||640,hh=v.videoHeight||480;c.width=Math.min(w,900);c.height=Math.round(hh*(c.width/w));c.getContext('2d').drawImage(v,0,0,c.width,c.height);return c;}
+function analyze(c,manual){if(_camBusy)return;_camBusy=true;
+  Tesseract.recognize(c,'fra').then(function(r){_camBusy=false;var txt=(r.data.text||'').replace(/\s+/g,' ').trim();
+    var risky=/(\d{1,2}[.,]\d{1,2})\s*m|(\d{1,2})\s*t\b|interdit|verboden|sauf|tunnel|pont|max/i.test(txt);
+    var R=document.getElementById('camRes');
+    if(risky&&txt.length>1){R.style.display='block';R.style.background='rgba(245,158,11,.96)';R.style.color='#3a2400';R.textContent='⚠️ '+t('detected')+txt.slice(0,90);speak(txt.slice(0,60));
+      if(lang!=='fr'){fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(txt.slice(0,200))+'&langpair=fr|'+lang+'&de='+encodeURIComponent(EMAIL)).then(function(x){return x.json();}).then(function(d){if(d&&d.responseData&&d.responseData.translatedText)R.textContent='⚠️ '+t('detected')+d.responseData.translatedText.slice(0,120);}).catch(function(){});}
+    }else if(manual){R.style.display='block';R.style.background='rgba(16,185,129,.96)';R.style.color='#04361f';R.textContent=t('scanOk');setTimeout(function(){R.style.display='none';},2500);}
+  }).catch(function(){_camBusy=false;});}
+function snapSign(){analyze(grabFrame(),true);}
+function toggleAuto(){if(document.getElementById('camAuto').checked){camTimer=setInterval(function(){if(document.getElementById('cam').style.display==='block')analyze(grabFrame(),false);},8000);}else if(camTimer){clearInterval(camTimer);camTimer=null;}}
+document.documentElement.lang=lang;
+if(!localStorage.getItem('mt_seen'))document.getElementById('disc').style.display='flex';
+window.addEventListener('load',function(){initMap();applyI18n();if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}});
+</script>
+</body>
+</html>
