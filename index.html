@@ -71,6 +71,17 @@ textarea{min-height:58px;resize:vertical}textarea:focus,input:focus,select:focus
 .btn,.actions button,#routeBtn,#startBtn,#tour .goB,#tour .ctl button,.summary,.steps,.warnline,.transbox .r,#disc .box{border-radius:9px}
 textarea,input[type=number],select,.mini,.num{border-radius:7px}.fab{border-radius:12px}
 #routeBtn,#startBtn{box-shadow:none}.summary{background:#0b1220}
+
+.searchwrap{position:fixed;top:74px;left:12px;right:12px;z-index:13}
+#searchBox{width:100%;height:46px;border:none;border-radius:12px;padding:0 14px;font-size:16px;font-family:inherit;box-shadow:0 6px 20px rgba(11,18,32,.14);background:#fff;color:#0b1220}
+#searchBox:focus{outline:none;box-shadow:0 6px 20px rgba(47,107,255,.3)}
+.searchres{background:#fff;border-radius:12px;margin-top:6px;overflow:hidden;box-shadow:0 8px 24px rgba(11,18,32,.16)}
+.searchres div{padding:11px 14px;border-bottom:1px solid #eef1f6;font-size:14px;cursor:pointer}
+.searchres div:last-child{border-bottom:none}.searchres div:active{background:#eef2fb}
+#nav{position:fixed;inset:0;z-index:40;pointer-events:none}
+#navBanner{position:absolute;top:0;left:0;right:0;background:#0b1220;color:#fff;padding:18px 16px;font-size:19px;font-weight:800;display:flex;gap:12px;align-items:center;pointer-events:auto;min-height:74px}
+#navInfo{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e7ebf2;padding:14px 18px;display:flex;justify-content:space-between;font-weight:800;font-size:16px;pointer-events:auto}
+#navQuit{position:absolute;bottom:78px;right:14px;background:#e11d48;color:#fff;border:none;border-radius:11px;padding:12px 16px;font-weight:800;pointer-events:auto;font-family:inherit}
 </style>
 </head>
 <body>
@@ -79,6 +90,7 @@ textarea,input[type=number],select,.mini,.num{border-radius:7px}.fab{border-radi
   <div class="brand">🚚 <span><span data-i18n="title"></span><small data-i18n="subtitle"></small></span></div>
   <div class="langs"><select id="langSel" onchange="setLang(this.value)" aria-label="Langue"><option value="fr">FR</option><option value="en">EN</option><option value="nl">NL</option><option value="de">DE</option><option value="bg">BG</option><option value="tr">TR</option><option value="ro">RO</option><option value="pl">PL</option></select></div>
 </div>
+<div class="searchwrap"><input id="searchBox" type="text" oninput="onSearch()" data-i18n-ph="searchPh" autocomplete="off" /><div id="searchRes" class="searchres"></div></div>
 <button class="fab" onclick="locateMe()" aria-label="position">📍</button>
 <button class="fab" style="top:calc(46vh - 118px)" onclick="openCam()" aria-label="camera">📷</button>
 
@@ -87,6 +99,7 @@ textarea,input[type=number],select,.mini,.num{border-radius:7px}.fab{border-radi
   <div id="routeStatus"></div>
   <div class="summary" id="sum"></div>
   <div class="steps" id="steps"></div>
+    <button id="navStart" onclick="startNav()" class="btn p" style="display:none;width:100%;margin-top:10px;min-height:52px">▶️ <span data-i18n="navStart"></span></button>
 
   <div class="sect">
     <h2 data-i18n="step2"></h2>
@@ -154,6 +167,11 @@ textarea,input[type=number],select,.mini,.num{border-radius:7px}.fab{border-radi
   <button class="goB" onclick="tourGo()">🧭 <span data-i18n="goThere"></span></button>
   <div class="ctl"><button class="prev" onclick="tourPrev()" data-i18n="prevBtn"></button><button class="done" onclick="tourDone()" data-i18n="doneBtn"></button></div>
 </div>
+<div id="nav" style="display:none">
+  <div id="navBanner"></div>
+  <div id="navInfo"></div>
+  <button id="navQuit" onclick="stopNav()" data-i18n="exitTour"></button>
+</div>
 <div id="disc"><div class="box"><h3>⚠️</h3><p data-i18n="disclaimer"></p><button onclick="closeDisc()" data-i18n="okBtn"></button></div></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -179,13 +197,13 @@ var I18N_MORE={
  de:{title:"Meine Tour",subtitle:"LKW-Navigation — Beschränkungen, Scan, Übersetzung",vehTitle:"🚛 Mein Fahrzeug",vh:"Höhe (m)",vw:"Gewicht (t)",vwid:"Breite (m)",vlen:"Länge (m)",vadr:"Gefahrgut (ADR)",step1:"1. Stopps hinzufügen",pastePh:"Adressen einfügen, eine pro Zeile\nz. B.: Rue de Mons 12, 7130 Binche",addBtn:"+ Hinzufügen",scanBtn:"📷 Scannen",step2:"2. LKW-Route",empty:"Keine Stopps.",osmWarn:"⚠️ Route aus offenen Daten (OSM), teils unvollständig. Immer die Schilder prüfen (niedrige Brücken, Gewicht). Fahrer ist verantwortlich.",routeBtn:"🧭 Route",startTour:"▶️ Tour",transTitle:"🔤 Notiz übersetzen",noteIn:"Notiz in:",photoNote:"📷 Notiz fotografieren",translateBtn:"Übersetzen",goThere:"Zentrieren",next:"Weiter",doneBtn:"✓ Fertig",prevBtn:"← Zurück",exitTour:"Schließen",finished:"Tour beendet 🎉",sum:"{km} km · {min} Min",stop:"Stopp",stops:"Stopps",okBtn:"Verstanden",readSign:"📷 Schild lesen",autoDetect:"Auto (Beta)",camWarn:"Assistierte Erkennung — bleib aufmerksam, achte stets auf die Straße.",camNext:"Nächster Stopp",detected:"Schild: ",disclaimer:"Routen sind Richtwerte (OSM-Daten können unvollständig sein). Prüfe immer die Verkehrsschilder (niedrige Brücken, Gewicht, Verbote). Der Fahrer bleibt allein verantwortlich. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO."},
  ro:{title:"Traseul meu",subtitle:"Navigație camion — restricții, scanare, traducere",vehTitle:"🚛 Vehiculul meu",vh:"Înălțime (m)",vw:"Greutate (t)",vwid:"Lățime (m)",vlen:"Lungime (m)",vadr:"Mărfuri periculoase (ADR)",step1:"1. Adaugă opriri",pastePh:"Lipește adresele, una pe rând\nEx: Rue de Mons 12, 7130 Binche",addBtn:"+ Adaugă",scanBtn:"📷 Scanează",step2:"2. Rută camion",empty:"Nicio oprire.",osmWarn:"⚠️ Rută din date deschise (OSM), uneori incomplete. Verifică mereu indicatoarele (poduri joase, tonaj). Șoferul este responsabil.",routeBtn:"🧭 Rută",startTour:"▶️ Tur",transTitle:"🔤 Traduce o notă",noteIn:"Notă în:",photoNote:"📷 Fotografiază nota",translateBtn:"Traduce",goThere:"Centrează",next:"Următor",doneBtn:"✓ Gata",prevBtn:"← Înapoi",exitTour:"Ieșire",finished:"Tur finalizat 🎉",sum:"{km} km · {min} min",stop:"oprire",stops:"opriri",okBtn:"Am înțeles",readSign:"📷 Citește indicatorul",autoDetect:"Auto (beta)",camWarn:"Detectare asistată — fii atent, verifică mereu drumul.",camNext:"Următoarea oprire",detected:"Indicator: ",disclaimer:"Rutele sunt orientative (datele OSM pot fi incomplete). Verifică mereu indicatoarele (poduri joase, tonaj, interdicții). Șoferul rămâne singurul responsabil. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO."},
  pl:{title:"Moja trasa",subtitle:"Nawigacja ciężarówki — ograniczenia, skan, tłumaczenie",vehTitle:"🚛 Mój pojazd",vh:"Wysokość (m)",vw:"Masa (t)",vwid:"Szerokość (m)",vlen:"Długość (m)",vadr:"Towary niebezpieczne (ADR)",step1:"1. Dodaj przystanki",pastePh:"Wklej adresy, jeden na linię\nNp: Rue de Mons 12, 7130 Binche",addBtn:"+ Dodaj",scanBtn:"📷 Skanuj",step2:"2. Trasa ciężarówki",empty:"Brak przystanków.",osmWarn:"⚠️ Trasa z danych otwartych (OSM), czasem niekompletnych. Zawsze sprawdzaj znaki (niskie mosty, tonaż). Kierowca odpowiada.",routeBtn:"🧭 Trasa",startTour:"▶️ Trasa",transTitle:"🔤 Przetłumacz notatkę",noteIn:"Notatka w:",photoNote:"📷 Sfotografuj notatkę",translateBtn:"Tłumacz",goThere:"Wyśrodkuj",next:"Następny",doneBtn:"✓ Gotowe",prevBtn:"← Wstecz",exitTour:"Wyjście",finished:"Trasa zakończona 🎉",sum:"{km} km · {min} min",stop:"przystanek",stops:"przystanki",okBtn:"Rozumiem",readSign:"📷 Odczytaj znak",autoDetect:"Auto (beta)",camWarn:"Wykrywanie wspomagane — zachowaj czujność, zawsze patrz na drogę.",camNext:"Następny przystanek",detected:"Znak: ",disclaimer:"Trasy mają charakter orientacyjny (dane OSM mogą być niekompletne). Zawsze sprawdzaj znaki (niskie mosty, tonaż, zakazy). Kierowca ponosi wyłączną odpowiedzialność. © openrouteservice (HeiGIT) · © OpenStreetMap · © CARTO."}
-};Object.keys(I18N_MORE).forEach(function(k){I18N[k]=I18N_MORE[k];});I18N.fr.stdMode='Mode standard (voiture) — sans restrictions camion. Configure le moteur camion pour les éviter.';if(I18N.en)I18N.en.stdMode='Standard mode (car) — no truck limits. Set up the truck engine to avoid them.';
+};Object.keys(I18N_MORE).forEach(function(k){I18N[k]=I18N_MORE[k];});I18N.fr.stdMode='Mode standard (voiture) — sans restrictions camion. Configure le moteur camion pour les éviter.';if(I18N.en)I18N.en.stdMode='Standard mode (car) — no truck limits. Set up the truck engine to avoid them.';I18N.fr.searchPh='Où aller ? (adresse)';I18N.fr.navStart='Démarrer';I18N.fr.recompute='Recalcul…';I18N.fr.arrived='Arrivée';I18N.fr.steplbl='étapes';if(I18N.en){I18N.en.searchPh='Where to? (address)';I18N.en.navStart='Start';I18N.en.recompute='Rerouting…';I18N.en.arrived='Arrived';I18N.en.steplbl='steps';}
 var SRC2TESS={fr:'fra',nl:'nld',en:'eng',de:'deu',bg:'bul',tr:'tur',ro:'ron',pl:'pol'};
 var ORSLANG={fr:'fr',bg:'en',tr:'en',en:'en',nl:'nl',de:'de',ro:'en',pl:'en'};var SPEAK={fr:'fr-FR',bg:'bg-BG',tr:'tr-TR',en:'en-GB',nl:'nl-NL',de:'de-DE',ro:'ro-RO',pl:'pl-PL'};var EMAIL='expedipro.srl@gmail.com';
 var lang=localStorage.getItem('mt_lang')||'fr';
 var stops=[];try{var _s=JSON.parse(localStorage.getItem('mt_stops')||'[]');stops=Array.isArray(_s)?_s:[];}catch(e){stops=[];}
 var coordCache={};try{coordCache=JSON.parse(localStorage.getItem('mt_coords')||'{}')||{};}catch(e){coordCache={};}
-var tourIdx=0,map,routeLayer,markerLayer,meMarker,_isRouting=false;
+var tourIdx=0,map,routeLayer,markerLayer,meMarker,_isRouting=false;var navSteps=[],navIdx=0,navWatch=null,navMarker=null,_offCount=0,routeCoordsLL=[],_searchT=null;
 function t(k){return (I18N[lang]&&I18N[lang][k])||I18N.fr[k]||k;}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function save(){localStorage.setItem('mt_stops',JSON.stringify(stops));localStorage.setItem('mt_coords',JSON.stringify(coordCache));}
@@ -247,7 +265,7 @@ async function routeTruck(){
       if(rr.status===401||rr.status===500){st.style.color='var(--red)';st.textContent=t('errKey');_isRouting=false;return;}
       if(rr.status===429){st.style.color='var(--red)';st.textContent=t('errQuota');_isRouting=false;return;}
       if(rr.status===403){st.style.color='var(--red)';st.textContent=t('errDay');_isRouting=false;return;}
-      gj=await rr.json();
+      gj=await rr.json();window._navORS=gj;window._navOSRM=null;
       if(gj&&gj.error){st.style.color='var(--red)';st.textContent='⚠️ '+(gj.error.message||t('routeErr'));_isRouting=false;return;}
     }else{
       std=true;
@@ -257,19 +275,19 @@ async function routeTruck(){
       try{r2=await fetch(uu,{signal:ctrl2.signal});}finally{clearTimeout(to2);}
       var oj=await r2.json();
       if(!oj||oj.code!=='Ok'||!oj.routes||!oj.routes.length){st.style.color='var(--red)';st.textContent=t('routeErr');_isRouting=false;return;}
-      var rt=oj.routes[0];
+      var rt=oj.routes[0];window._navOSRM=rt;window._navORS=null;
       gj={type:'FeatureCollection',features:[{type:'Feature',geometry:rt.geometry,properties:{summary:{distance:rt.distance,duration:rt.duration},segments:(rt.legs||[]).map(function(lg){return {steps:(lg.steps||[]).map(function(s){return {instruction:((s.maneuver&&s.maneuver.type)||'')+' '+(s.name||''),distance:s.distance};})};})}}]};
     }
     if(!gj||!gj.features||!gj.features.length){st.style.color='var(--red)';st.textContent=t('routeErr');_isRouting=false;return;}
     st.style.display='none';
     var line=L.geoJSON(gj,{style:{color:'#2f6bff',weight:6,opacity:.85}}).addTo(routeLayer);
     coords.forEach(function(c,idx){L.marker([c[1],c[0]]).addTo(markerLayer).bindPopup((idx+1)+'. '+esc(stops[idx]));});
-    var b=line.getBounds();if(b.isValid())map.fitBounds(b,{padding:[30,30]});
+    var b=line.getBounds();if(b.isValid())map.fitBounds(b,{padding:[30,30]});try{routeCoordsLL=gj.features[0].geometry.coordinates.map(function(c){return [c[1],c[0]];});}catch(e){routeCoordsLL=[];}
     var p=gj.features[0].properties.summary||{distance:0,duration:0};
     var sm=document.getElementById('sum');sm.style.display='block';sm.textContent=t('sum').replace('{km}',(p.distance/1000).toFixed(1)).replace('{min}',Math.round(p.duration/60))+(std?' · '+t('stdMode'):'');
     var segs=gj.features[0].properties.segments||[];var box=document.getElementById('steps');box.innerHTML='';
     segs.forEach(function(sg){(sg.steps||[]).forEach(function(stp){if(!stp.instruction||!stp.instruction.trim())return;var d=document.createElement('div');d.textContent='➡️ '+stp.instruction+(stp.distance?' ('+Math.round(stp.distance)+' m)':'');box.appendChild(d);});});
-    if(box.innerHTML)box.style.display='block';
+    if(box.innerHTML)box.style.display='block';buildNavSteps();var _nb=document.getElementById('navStart');if(_nb)_nb.style.display='block';
   }catch(e){st.style.color='var(--red)';st.textContent=(e instanceof TypeError||(e&&e.name==='AbortError'))?t('errNet'):t('routeErr');}
   _isRouting=false;
 }
@@ -301,6 +319,38 @@ function analyze(c,manual){if(_camBusy)return;_camBusy=true;
   }).catch(function(){_camBusy=false;});}
 function snapSign(){analyze(grabFrame(),true);}
 function toggleAuto(){if(document.getElementById('camAuto').checked){camTimer=setInterval(function(){if(document.getElementById('cam').style.display==='block')analyze(grabFrame(),false);},8000);}else if(camTimer){clearInterval(camTimer);camTimer=null;}}
+function onSearch(){var q=document.getElementById('searchBox').value.trim();var box=document.getElementById('searchRes');if(_searchT)clearTimeout(_searchT);if(q.length<3){box.innerHTML='';return;}
+ _searchT=setTimeout(function(){fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language='+lang+'&countrycodes=be,fr,nl,de,lu&q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(d){box.innerHTML='';(d||[]).forEach(function(it){var el=document.createElement('div');el.textContent=it.display_name;el.onclick=function(){pickSearch(it.lon,it.lat,it.display_name);};box.appendChild(el);});}).catch(function(){});},400);}
+function pickSearch(lon,lat,label){var short=label.split(',').slice(0,3).join(',');coordCache[short]=[parseFloat(lon),parseFloat(lat)];stops.push(short);save();render();document.getElementById('searchBox').value='';document.getElementById('searchRes').innerHTML='';}
+function hav(a,b,c,d){var R=6371000,t=Math.PI/180;var u=(c-a)*t,v=(d-b)*t;var x=Math.sin(u/2)*Math.sin(u/2)+Math.cos(a*t)*Math.cos(c*t)*Math.sin(v/2)*Math.sin(v/2);return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function osrmPhrase(s){var m=s.maneuver||{},ty=m.type||'',mo=m.modifier||'',nm=s.name||'';var T={fr:{left:'Tournez à gauche',right:'Tournez à droite','sharp left':'Tournez fortement à gauche','sharp right':'Tournez fortement à droite','slight left':'Légèrement à gauche','slight right':'Légèrement à droite',straight:'Tout droit',uturn:'Faites demi-tour'}}[ 'fr'];var base;if(ty==='depart')base='Départ';else if(ty==='arrive')base='Arrivée';else if(ty==='roundabout'||ty==='rotary')base='Au rond-point';else if(ty==='merge')base='Insérez-vous';else if(ty==='fork')base=(T[mo]||'Continuez');else if(ty==='new name'||ty==='continue')base='Continuez';else if(ty==='end of road')base='Au bout de la route, '+((T[mo]||'continuez').toLowerCase());else base=T[mo]||'Continuez';return base+(nm?' sur '+nm:'');}
+function buildNavSteps(){navSteps=[];try{if(window._navOSRM){(window._navOSRM.legs||[]).forEach(function(lg){(lg.steps||[]).forEach(function(s){var loc=s.maneuver&&s.maneuver.location;if(loc)navSteps.push({lat:loc[1],lon:loc[0],txt:osrmPhrase(s)});});});}else if(window._navORS){var geo=window._navORS.features[0].geometry.coordinates;(window._navORS.features[0].properties.segments||[]).forEach(function(sg){(sg.steps||[]).forEach(function(s){var idx=(s.way_points&&s.way_points[0])||0;var c=geo[idx];if(c)navSteps.push({lat:c[1],lon:c[0],txt:s.instruction});});});}}catch(e){}navIdx=0;}
+function arrowFor(txt){var x=txt.toLowerCase();if(x.indexOf('gauche')>=0||x.indexOf('left')>=0)return '↰';if(x.indexOf('droite')>=0||x.indexOf('right')>=0)return '↱';if(x.indexOf('demi-tour')>=0)return '⮌';if(x.indexOf('rond-point')>=0)return '⟳';if(x.indexOf('arriv')>=0)return '🏁';return '↑';}
+function minDistToRoute(la,lo){if(!routeCoordsLL.length)return 0;var mn=1e12;for(var i=0;i<routeCoordsLL.length;i+=2){var d=hav(la,lo,routeCoordsLL[i][0],routeCoordsLL[i][1]);if(d<mn)mn=d;}return mn;}
+function startNav(){if(!navSteps.length){alert(t('routeErr'));return;}
+ var sh=document.querySelector('.sheet'),ac=document.querySelector('.actions'),tb=document.querySelector('.topbar');if(sh)sh.style.display='none';if(ac)ac.style.display='none';if(tb)tb.style.display='none';
+ var mp=document.getElementById('map');mp.style.height='100vh';setTimeout(function(){map.invalidateSize();},150);
+ document.getElementById('nav').style.display='block';navIdx=0;_offCount=0;
+ if(!navMarker)navMarker=L.circleMarker([navSteps[0].lat,navSteps[0].lon],{radius:9,color:'#2f6bff',fillColor:'#2f6bff',fillOpacity:1}).addTo(map);
+ if(navSteps[0])speak(navSteps[0].txt);
+ if(navigator.geolocation)navWatch=navigator.geolocation.watchPosition(navTick,function(){},{enableHighAccuracy:true,maximumAge:1000,timeout:12000});}
+function stopNav(){if(navWatch!=null){navigator.geolocation.clearWatch(navWatch);navWatch=null;}try{speechSynthesis.cancel();}catch(e){}
+ document.getElementById('nav').style.display='none';var sh=document.querySelector('.sheet'),ac=document.querySelector('.actions'),tb=document.querySelector('.topbar');if(sh)sh.style.display='';if(ac)ac.style.display='';if(tb)tb.style.display='';
+ var mp=document.getElementById('map');mp.style.height='';setTimeout(function(){map.invalidateSize();},150);}
+function navTick(p){var la=p.coords.latitude,lo=p.coords.longitude;if(navMarker)navMarker.setLatLng([la,lo]);if(map)map.setView([la,lo],16);
+ var bn=document.getElementById('navBanner');
+ if(navIdx<navSteps.length){var s=navSteps[navIdx];var d=hav(la,lo,s.lat,s.lon);
+  bn.innerHTML='<span style="font-size:30px">'+arrowFor(s.txt)+'</span><span>'+esc(s.txt)+'</span><span style="margin-left:auto">'+(d<1000?Math.round(d)+' m':(d/1000).toFixed(1)+' km')+'</span>';
+  if(d<220&&!s._a){s._a=true;speak((lang==='fr'?'Dans 200 mètres. ':'In 200 meters. ')+s.txt);}
+  if(d<45){navIdx++;if(navIdx<navSteps.length)speak(navSteps[navIdx].txt);}
+ }else{bn.innerHTML='<span style="font-size:26px">🏁</span><span>'+t('arrived')+'</span>';}
+ var sp=p.coords.speed;var spk=(sp&&sp>0)?Math.round(sp*3.6)+' km/h':'-- km/h';
+ document.getElementById('navInfo').innerHTML='<span>'+spk+'</span><span>'+Math.max(0,navSteps.length-navIdx)+' '+t('steplbl')+'</span>';
+ var nd=minDistToRoute(la,lo);if(nd>70)_offCount++;else _offCount=0;if(_offCount>=2){_offCount=0;recomputeFrom(la,lo);}}
+function recomputeFrom(la,lo){var bn=document.getElementById('navBanner');bn.innerHTML='<span>'+t('recompute')+'</span>';
+ var dest=stops.length?coordCache[stops[stops.length-1]]:null;if(!dest){return;}
+ var uu='https://router.project-osrm.org/route/v1/driving/'+lo+','+la+';'+dest[0]+','+dest[1]+'?overview=full&geometries=geojson&steps=true';
+ fetch(uu).then(function(r){return r.json();}).then(function(oj){if(!oj||oj.code!=='Ok'||!oj.routes||!oj.routes.length)return;var rt=oj.routes[0];window._navOSRM=rt;window._navORS=null;buildNavSteps();routeLayer.clearLayers();L.geoJSON(rt.geometry,{style:{color:'#2f6bff',weight:6,opacity:.85}}).addTo(routeLayer);routeCoordsLL=rt.geometry.coordinates.map(function(c){return [c[1],c[0]];});}).catch(function(){});}
 document.documentElement.lang=lang;
 if(!localStorage.getItem('mt_seen'))document.getElementById('disc').style.display='flex';
 window.addEventListener('load',function(){initMap();applyI18n();if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}});
